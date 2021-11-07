@@ -9,6 +9,7 @@ static constexpr uint8_t SCREEN_ADDRESS(0x3c);
 
 static constexpr uint64_t DELAY_BETWEEN_CARDS = 2000;
 
+static constexpr uint8_t MAX_CARDS_COUNT(5);
 
 App::App()
   : display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire1)
@@ -30,8 +31,6 @@ void App::Run() {
   Serial.printf("Current cardsCount = %u\n", cardsCount);
   if (cardsCount > 0) {
     for (i=1;i<=cardsCount;i++) {
-      // sprintf(arrayOfChars,"%c",i);
-      // cards[i] = preferences.getUInt(arrayOfChars);
       itoa(i,arrayOfChars,10);
       cards[i] = preferences.getUInt(arrayOfChars);
       Serial.printf("Read card[%u] = %u\n", i, cards[i]);
@@ -105,9 +104,6 @@ void App::loop() {
   display.setTextSize(2);
   display.setTextColor(SSD1306_WHITE);
 
-  // display.setCursor(15, 24);
-  // display.println(encoder.getCount());
-  // display.display();
   handleButtons();
   Menu();
 
@@ -204,12 +200,8 @@ void App::handleButtons() {
           menuItem = encoder.getCount();
           break;
         case 1:
-          menuItem = 11;
-          if (readerDisabled) {
-            if (millis() - timeLastCardRead > DELAY_BETWEEN_CARDS) {
-              readerDisabled = false;
-              startListeningToNFC();
-            }
+          if (cardsCount < MAX_CARDS_COUNT) {
+            menuItem = 11;
           }
           break;
         case 2:
@@ -228,7 +220,7 @@ void App::handleButtons() {
           preferences.putUInt(arrayOfChars, newCard);
           Serial.println("preferences.putUInt newCard");
           t_value = preferences.getUInt(arrayOfChars);
-          Serial.printf("EEPROM.readUInt newCard: %u\n", t_value);
+          Serial.printf("ReadUInt newCard: %u\n", t_value);
           if (newCard == t_value ) {
             // write card to memory successful
             Serial.println("Increase cards count..");
@@ -276,6 +268,8 @@ void App::handleButtons() {
   } else {                         // кнопка отпущена
     encoderBtnPressed = false;
   }
+  
+  // LOGICS
   switch (menuItem)
   {
     case 0:
@@ -304,10 +298,6 @@ void App::handleButtons() {
       if (encoder.getCount() < 12) encoder.setCount(12);
       menuItem = encoder.getCount();
       break;
-    case 14:
-      delay(200);
-      menuItem = 1;
-      break;
     case 21:
     case 22:
     case 23:
@@ -335,7 +325,11 @@ void App::Menu() {
     //---------------------------------
     display.setTextSize(1);
     display.setCursor(10, 20);
-    display.println("Read card ->");
+    if (cardsCount < MAX_CARDS_COUNT) {
+      display.println("Read card ->");
+    } else {
+      display.println("Read card");
+    }
 
     display.setCursor(10, 30);
     display.print("View cards [");
@@ -376,10 +370,17 @@ void App::Menu() {
       display.println(">"); 
     }
     if (menuItem == 14) {
-      display.setCursor(10, 20);
-      display.println("Card has been stored."); 
+      Serial.println("Draw menuItem=14");
+      display.setCursor(5, 20);
+      display.println("Card has been stored"); 
     }
+    
     display.display();
+
+    if (menuItem == 14) {
+      delay(2000);
+      menuItem = 1;
+    }
   }
 
   if (menuItem >= 21 && menuItem <=29) {

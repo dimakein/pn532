@@ -2,7 +2,7 @@
 
 void setup() {
   Serial.begin(115200);
-  Serial.println("Start");
+  Serial.println("PN532 Start");
   App app;
   app.Run();
   Serial.println("Halt");
